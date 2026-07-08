@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E1B18">
+<title>Manawa Honey — Batch Records</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.svg">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<style>
+  :root{
+    --bg:#1E1B18;
+    --panel:#29241F;
+    --panel-2:#322C25;
+    --line:#46392A;
+    --amber:#E0A83A;
+    --amber-dim:#B8822B;
+    --blue:#7CA6C9;
+    --text:#F0EAE0;
+    --text-dim:#A99B87;
+    --danger:#C1615A;
+    --good:#7FBE8A;
+    --good-wash:rgba(127,190,138,0.14);
+    --warn:#E0A83A;
+    --warn-wash:rgba(224,168,58,0.14);
+    --mono:'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --radius:8px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  h1,h2,h3{margin:0;}
+
+  header.appbar{
+    position:sticky; top:0; z-index:20; background:var(--bg);
+    border-bottom:2px solid var(--amber-dim);
+    padding:16px 16px 14px 16px;
+  }
+  .appbar-top{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .title{display:flex; align-items:baseline; gap:10px;}
+  .hive{width:10px; height:10px; border-radius:2px; background:var(--amber); box-shadow:0 0 0 3px rgba(224,168,58,0.15); flex-shrink:0;}
+  header h1{font-size:15px; letter-spacing:0.03em; font-weight:700; text-transform:uppercase;}
+  .sync-sub{font-size:11px; color:var(--text-dim); font-family:var(--mono); display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .sync-dot{width:7px; height:7px; border-radius:50%; background:var(--good);}
+  .sync-dot.offline{background:var(--warn);}
+
+  main{padding:16px; max-width:680px; margin:0 auto; padding-bottom:40px;}
+
+  .panel{background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:16px;}
+  .panel-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:10px; flex-wrap:wrap;}
+  .panel-header h2{font-size:12.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.07em; font-weight:700;}
+  .panel .sub{font-size:12px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;}
+
+  .new-batch-row{margin-bottom:16px;}
+
+  .section-label{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+    padding-bottom:6px; border-bottom:1px solid var(--line); margin:4px 0 12px 0;
+  }
+  .section-label.proc{color:var(--amber);}
+  .section-label.bottle{color:var(--blue);}
+  .section-status{font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; margin-left:8px; text-transform:none; letter-spacing:0;}
+  .section-status.filled{background:var(--good-wash); color:var(--good);}
+  .section-status.empty{background:var(--panel); color:var(--text-dim);}
+
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:10.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .qty-row{display:grid; grid-template-columns:1fr 80px; gap:10px;}
+
+  input[type=text], input[type=date], input[type=time], input[type=number], select, textarea{
+    width:100%; font-size:15px; padding:11px 11px; border:1px solid var(--line); border-radius:6px;
+    background:var(--bg); color:var(--text); font-family:var(--mono);
+  }
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--amber);}
+  textarea{min-height:52px; resize:vertical; font-family:var(--sans); font-size:14px;}
+  .field.batchno input{border-color:var(--amber-dim); font-weight:700; color:var(--amber); font-size:16px;}
+
+  /* smart dropdown (remembered values + Other) */
+  .dd-other{border-color:var(--amber-dim) !important; color:var(--amber) !important;}
+
+  /* time field + clock trigger */
+  .time-field{display:flex; gap:8px; align-items:stretch;}
+  .time-field input[type=time]{flex:1;}
+  .clock-btn{flex:none; width:44px; padding:0; font-size:17px; border-radius:6px;}
+
+  button, .btn{
+    font-family:var(--sans); font-size:13px; font-weight:700; letter-spacing:0.01em;
+    padding:11px 16px; border-radius:6px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text); cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .btn-primary{background:var(--amber); color:#1E1B18; border-color:var(--amber); width:100%; padding:14px;}
+  .btn-primary:active{background:#EEB84E;}
+  .btn-ghost{background:transparent; color:var(--text);}
+  .btn-ghost:hover{border-color:var(--amber-dim);}
+  .btn-danger{background:transparent; color:var(--danger); border-color:transparent;}
+  .btn-danger:hover{border-color:var(--danger);}
+  .btn-sm{padding:7px 11px; font-size:11.5px;}
+  .btn-row{display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;}
+  .btn-row .btn{flex:1; min-width:120px;}
+  .btn-icon{width:34px; height:34px; padding:0; flex:none; font-size:16px; border-radius:50%;}
+
+  .legend{display:flex; gap:16px; font-size:11px; color:var(--text-dim); margin-bottom:10px;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:8px; height:8px; border-radius:2px; display:inline-block;}
+  .legend i.proc{background:var(--amber-dim);}
+  .legend i.bottle{background:var(--blue);}
+
+  .table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px;}
+  table{border-collapse:collapse; width:100%; font-size:12px; font-family:var(--mono);}
+  th{background:var(--panel); text-align:left; padding:8px 10px; white-space:nowrap; color:var(--text-dim); font-weight:600; border-bottom:1px solid var(--line); font-size:10px; text-transform:uppercase; letter-spacing:0.03em; font-family:var(--sans);}
+  td{padding:9px 10px; white-space:nowrap; border-bottom:1px solid var(--line); color:var(--text);}
+  tr:last-child td{border-bottom:none;}
+  tr{cursor:pointer;}
+  tr:hover td{background:rgba(224,168,58,0.06);}
+  td.batch{color:var(--amber); font-weight:700; position:sticky; left:0; background:var(--panel-2);}
+  tr:hover td.batch{background:#3a3226;}
+  .status-badge{font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap; font-family:var(--sans);}
+  .status-badge.synced{background:var(--good-wash); color:var(--good);}
+  .status-badge.pending{background:var(--warn-wash); color:var(--warn);}
+  .count{font-size:11px; color:var(--text-dim); font-family:var(--mono); margin-top:8px;}
+  .empty{padding:28px; text-align:center; color:var(--text-dim); font-size:13px;}
+
+  .import-row{border:1px dashed var(--line); border-radius:6px; padding:12px; margin-bottom:10px; background:var(--panel);}
+  .import-row label{text-transform:none; font-weight:700; font-size:12.5px; display:block; margin-bottom:6px; color:var(--text);}
+  .import-row .fname{font-size:11px; color:var(--text-dim); margin-top:6px; word-break:break-all; font-family:var(--mono);}
+  input[type=file]{font-size:12px; color:var(--text-dim); font-family:var(--sans);}
+
+  .product-line{border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:10px; background:var(--panel);}
+  .pl-match-note{font-size:11px; color:var(--warn); margin:-4px 0 10px 0;}
+  .pl-mode-toggle{display:flex; gap:8px; margin-bottom:12px;}
+  .pl-mode-btn{flex:1;}
+  .pl-mode-btn.on{background:var(--blue); color:#1E1B18; border-color:var(--blue);}
+
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--amber); color:#1E1B18; padding:10px 18px; border-radius:999px; font-size:13px; font-weight:700; z-index:200; opacity:0; pointer-events:none; transition:opacity 0.25s, transform 0.25s;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+  .field-required label::after{content:" *"; color:var(--amber);}
+
+  /* ---- Batch Record / Import modals (popup) ---- */
+  .modal-overlay{position:fixed; inset:0; z-index:100; background:rgba(10,8,6,0.72); display:none; overflow-y:auto; padding:0;}
+  .modal-overlay.open{display:block;}
+  .modal-box{background:var(--bg); width:100%; max-width:680px; margin:0 auto; min-height:100vh; padding-bottom:100px;}
+  @media (min-width:720px){ .modal-box{ min-height:auto; margin-top:32px; border:1px solid var(--line); border-radius:12px; overflow:hidden; } }
+  .modal-header{position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:2px solid var(--amber-dim); padding:16px 16px 14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .modal-header h2{font-size:14px; text-transform:uppercase; letter-spacing:0.03em;}
+  .modal-body{padding:16px;}
+  .modal-savebar{position:sticky; bottom:0; z-index:5; background:linear-gradient(to top, var(--bg) 65%, rgba(30,27,24,0)); padding:14px 16px 18px 16px; display:flex; gap:10px;}
+  .modal-savebar .btn-primary{flex:2;}
+  .modal-savebar .btn-pdf{flex:1; background:var(--panel); color:var(--blue); border:1px solid var(--blue); padding:14px;}
+  body.modal-open{overflow:hidden;}
+
+  /* ---- Clock picker (popup) ---- */
+  .clock-box{background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:20px; width:280px; max-width:90vw; margin:14vh auto 0 auto;}
+  .clock-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .clock-time-display{font-family:var(--mono); font-size:28px; font-weight:700; color:var(--text-dim);}
+  .clock-digit{cursor:pointer; padding:2px 5px; border-radius:5px;}
+  .clock-digit.active{color:var(--amber); background:rgba(224,168,58,0.12);}
+  .ampm-toggle{display:flex; flex-direction:column; gap:4px;}
+  .ampm-btn{padding:5px 10px; font-size:10.5px; border-radius:5px;}
+  .ampm-btn.active{background:var(--amber); color:#1E1B18; border-color:var(--amber);}
+  .clock-face-wrap{display:flex; justify-content:center; margin-bottom:16px;}
+  .clock-svg{width:220px; height:220px; touch-action:none; cursor:pointer;}
+  .clock-circle{fill:var(--bg); stroke:var(--line); stroke-width:1;}
+  .clock-hand{stroke:var(--amber); stroke-width:2; stroke-linecap:round;}
+  .clock-center{fill:var(--amber);}
+  .clock-num{fill:var(--text-dim); font-size:15px; font-family:var(--sans); user-select:none;}
+  .clock-num.selected{fill:var(--amber); font-weight:700;}
+  .clock-actions{display:flex; justify-content:flex-end; gap:8px;}
+
+  /* ---- Print / Save-as-PDF: always light ---- */
+  #printArea{display:none;}
+  @media print{
+    body > *:not(#printArea){display:none !important;}
+    #printArea{display:block !important; width:100%; padding:0; margin:0; background:#fff; color:#111;}
+    .p-title{font-size:28px; font-weight:800; margin-bottom:4px; color:#111;}
+    .p-sub{font-size:15px; color:#555; margin-bottom:22px;}
+    .p-section{margin-bottom:26px; page-break-inside:avoid;}
+    .p-section h3{font-size:19px; border-bottom:2px solid #333; padding-bottom:6px; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.03em; color:#111;}
+    .p-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 28px;}
+    .p-row{display:flex; justify-content:space-between; border-bottom:1px dotted #bbb; padding:7px 0; font-size:16px;}
+    .p-row .k{color:#555;}
+    .p-row .v{font-weight:700; color:#111; font-size:17px;}
+    .p-notes{margin-top:10px; font-size:15px; white-space:pre-wrap; color:#111;}
+  }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <div class="appbar-top">
+    <div class="title">
+      <div class="hive"></div>
+      <h1>Manawa Honey — Batch Records</h1>
+    </div>
+    <div class="sync-sub"><span class="sync-dot" id="syncDot"></span><span id="syncText">online</span></div>
+  </div>
+</header>
+
+<main>
+
+  <div class="new-batch-row btn-row">
+    <button class="btn btn-primary" id="openNewBatch">+ New Batch</button>
+    <button class="btn btn-ghost" id="openImport">Import records</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Honey processing records</h2>
+      <div class="btn-row" style="margin:0;">
+        <button class="btn btn-ghost btn-sm" id="export-honey">Export CSV</button>
+        <button class="btn btn-ghost btn-sm" id="refresh-honey">Refresh</button>
+      </div>
+    </div>
+    <div class="sub">Tap a row to open it (and its matching bottling record) in the batch popup.</div>
+    <div class="table-scroll"><table id="honey-table"></table></div>
+    <div class="count" id="honey-count"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Bottling records</h2>
+      <div class="btn-row" style="margin:0;">
+        <button class="btn btn-ghost btn-sm" id="export-bottling">Export CSV</button>
+        <button class="btn btn-ghost btn-sm" id="refresh-bottling">Refresh</button>
+      </div>
+    </div>
+    <div class="sub">Tap a row to open it (and its matching processing record) in the batch popup.</div>
+    <div class="table-scroll"><table id="bottling-table"></table></div>
+    <div class="count" id="bottling-count"></div>
+  </div>
+
+</main>
+
+<!-- BATCH RECORD MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="editing-note">New batch</h2>
+      <button class="btn btn-icon btn-ghost" id="closeModal" aria-label="Close">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="panel">
+        <div class="field field-required batchno">
+          <label for="m_batch_no">Batch No</label>
+          <input type="text" id="m_batch_no" autocapitalize="characters" placeholder="e.g. BB2607M">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-label proc">Honey Processing <span class="section-status empty" id="honey-status">not filled</span></div>
+
+        <div class="row2">
+          <div class="field"><label for="h_date">Date</label><input type="date" id="h_date"></div>
+          <div class="field"><label for="h_operator">Operator</label><div class="dd-wrap"><select id="h_operator"></select><input type="text" id="h_operator_other" class="dd-other" style="display:none;" placeholder="Type new operator, press Enter"></div></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="h_plant_checked_clean">Plant Checked Clean</label><input type="date" id="h_plant_checked_clean"></div>
+          <div class="field"><label for="h_plant_assembled">Plant Assembled</label><input type="date" id="h_plant_assembled"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="h_start_time">Process Start Time</label>
+            <div class="time-field"><input type="time" id="h_start_time"><button type="button" class="btn clock-btn" data-target="h_start_time" aria-label="Pick time">🕐</button></div>
+          </div>
+          <div class="field"><label for="h_end_time">Process End Time</label>
+            <div class="time-field"><input type="time" id="h_end_time"><button type="button" class="btn clock-btn" data-target="h_end_time" aria-label="Pick time">🕐</button></div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="h_temp_phe">Honey Temp Ex No2 PHE (°C)</label><div class="dd-wrap"><select id="h_temp_phe"></select><input type="text" inputmode="decimal" id="h_temp_phe_other" class="dd-other" style="display:none;" placeholder="New value, press Enter"></div></div>
+          <div class="field"><label for="h_inlet_pressure">Honey Inlet Pressure</label><div class="dd-wrap"><select id="h_inlet_pressure"></select><input type="text" inputmode="decimal" id="h_inlet_pressure_other" class="dd-other" style="display:none;" placeholder="New value, press Enter"></div></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="h_temp_votator">Honey Temp Ex Votator (°C)</label><div class="dd-wrap"><select id="h_temp_votator"></select><input type="text" inputmode="decimal" id="h_temp_votator_other" class="dd-other" style="display:none;" placeholder="New value, press Enter"></div></div>
+          <div class="field"><label for="h_chilled_water_temp">Chilled Water Temp (°C)</label><div class="dd-wrap"><select id="h_chilled_water_temp"></select><input type="text" inputmode="decimal" id="h_chilled_water_temp_other" class="dd-other" style="display:none;" placeholder="New value, press Enter"></div></div>
+        </div>
+        <div class="field"><label for="h_notes">Notes (optional)</label><textarea id="h_notes" placeholder="Anything worth flagging..."></textarea></div>
+        <button class="btn btn-danger btn-sm" id="h_clear_section">Clear this section</button>
+      </div>
+
+      <div class="panel">
+        <div class="section-label bottle">Bottling <span class="section-status empty" id="bottling-status">not filled</span></div>
+
+        <div class="row2">
+          <div class="field"><label for="b_manufacture_date">Manufacture Date</label><input type="date" id="b_manufacture_date"></div>
+          <div class="field"><label for="b_operator">Operator</label><div class="dd-wrap"><select id="b_operator"></select><input type="text" id="b_operator_other" class="dd-other" style="display:none;" placeholder="Type new operator, press Enter"></div></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="b_equip_clean_date">Equip Clean App'd For Use</label><input type="date" id="b_equip_clean_date"></div>
+          <div class="field"><label for="b_plant_assembled_date">Plant Assembled</label><input type="date" id="b_plant_assembled_date"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="b_start_time">Process Start Time</label>
+            <div class="time-field"><input type="time" id="b_start_time"><button type="button" class="btn clock-btn" data-target="b_start_time" aria-label="Pick time">🕐</button></div>
+          </div>
+          <div class="field"><label for="b_end_time">Process End Time</label>
+            <div class="time-field"><input type="time" id="b_end_time"><button type="button" class="btn clock-btn" data-target="b_end_time" aria-label="Pick time">🕐</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="b_starter_qty">Starter Honey Addition Quantity</label>
+          <div class="qty-row">
+            <div class="dd-wrap"><select id="b_starter_qty"></select><input type="text" inputmode="decimal" id="b_starter_qty_other" class="dd-other" style="display:none;" placeholder="New value, press Enter"></div>
+            <select id="b_starter_unit"><option value="kg">kg</option><option value="g">g</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="b_batch_size">Batch Size (kg)</label>
+          <div class="dd-wrap"><select id="b_batch_size"></select><input type="text" inputmode="decimal" id="b_batch_size_other" class="dd-other" style="display:none;" placeholder="New value, press Enter"></div>
+        </div>
+
+        <div class="field">
+          <label>Products packed from this batch</label>
+          <div class="sub" style="margin-bottom:10px;">Optional — logs a stock movement for the inventory app to review and confirm. Add one line per product/jar size packed.</div>
+          <div id="product-lines"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="add_product_line">+ Add product</button>
+        </div>
+
+        <div class="field"><label for="b_notes">Notes (optional)</label><textarea id="b_notes" placeholder="Anything worth flagging..."></textarea></div>
+        <button class="btn btn-danger btn-sm" id="b_clear_section">Clear this section</button>
+      </div>
+
+      <div class="legend">
+        <span><i class="proc"></i>Processing field</span>
+        <span><i class="bottle"></i>Bottling field</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="clear_all">Clear whole form</button>
+      </div>
+    </div>
+
+    <div class="modal-savebar">
+      <button class="btn btn-primary" id="saveBtn">Save record</button>
+      <button class="btn btn-pdf" id="pdfBtn">Save as PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT RECORDS MODAL -->
+<div class="modal-overlay" id="importOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Import records</h2>
+      <button class="btn btn-icon btn-ghost" id="closeImport" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="panel">
+        <div class="sub">Upload a CSV — either the original shed CSVs or one exported from this app. Columns are matched by header name automatically.</div>
+        <div class="import-row">
+          <label>Bottling Processing Record CSV</label>
+          <input type="file" id="import-bottling-file" accept=".csv,text/csv">
+          <div class="fname" id="import-bottling-status"></div>
+        </div>
+        <div class="import-row">
+          <label>Honey Processing Record CSV</label>
+          <input type="file" id="import-honey-file" accept=".csv,text/csv">
+          <div class="fname" id="import-honey-status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLOCK PICKER MODAL -->
+<div class="modal-overlay" id="clockOverlay">
+  <div class="clock-box">
+    <div class="clock-header">
+      <span class="clock-time-display">
+        <span id="clockHourDisplay" class="clock-digit active">08</span>:<span id="clockMinDisplay" class="clock-digit">00</span>
+      </span>
+      <div class="ampm-toggle">
+        <button type="button" class="btn ampm-btn btn-sm active" id="amBtn">AM</button>
+        <button type="button" class="btn ampm-btn btn-sm" id="pmBtn">PM</button>
+      </div>
+    </div>
+    <div class="clock-face-wrap">
+      <svg id="clockSvg" viewBox="0 0 220 220" class="clock-svg">
+        <circle cx="110" cy="110" r="100" class="clock-circle"/>
+        <line id="clockHand" x1="110" y1="110" x2="110" y2="30" class="clock-hand"/>
+        <circle cx="110" cy="110" r="4" class="clock-center"/>
+        <g id="clockNumbers"></g>
+      </svg>
+    </div>
+    <div class="clock-actions">
+      <button class="btn btn-ghost btn-sm" id="clockCancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="clockDone" style="width:auto;">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="printArea"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* ---------- Config ---------- */
+const SUPABASE_URL = 'https://hczvczvlmrihqwogcezr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjenZjenZsbXJpaHF3b2djZXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNDA1NzYsImV4cCI6MjA5ODYxNjU3Nn0.WrjSmofeXuDTkd-RYJMDGIRqL_E1ZB4rpTDvBKi-37Q';
+let supa = null;
+try{ supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }catch(e){ console.error('Supabase client failed to init', e); }
+
+/* Inventory app's Supabase project — read-only product lookup + write pending stock movements.
+   This is a separate app/project; movements are never auto-applied to stock here. */
+const INVENTORY_SUPABASE_URL = 'https://mbitzetcopjludhnjleb.supabase.co';
+const INVENTORY_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iaXR6ZXRjb3BqbHVkaG5qbGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODU0MjEsImV4cCI6MjA5Nzg2MTQyMX0.9FBrZTQGLc4kt_sx9LO5Z7zFIKzqV_il6lJ-mJnv1Lw';
+let invSupa = null;
+try{ invSupa = supabase.createClient(INVENTORY_SUPABASE_URL, INVENTORY_SUPABASE_ANON_KEY); }catch(e){ console.error('Inventory Supabase client failed to init', e); }
+
+/* ---------- Local storage ---------- */
+const LS_KEYS = { bottling:'shed_bottling_records', honey:'shed_honey_records', operators:'shed_operators', lastOperator:'shed_last_operator', products:'shed_inventory_products', pendingMovements:'shed_pending_movements' };
+function loadLocal(key){ try{ return JSON.parse(localStorage.getItem(key)) || []; }catch(e){ return []; } }
+function saveLocal(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
+
+let bottlingRecords = loadLocal(LS_KEYS.bottling);
+let honeyRecords = loadLocal(LS_KEYS.honey);
+let operatorNames = loadLocal(LS_KEYS.operators);
+let inventoryProducts = loadLocal(LS_KEYS.products);
+let inventoryProductsById = {};
+function indexInventoryProducts(){ inventoryProductsById = {}; inventoryProducts.forEach(p=>{ inventoryProductsById[p.id] = p; }); }
+indexInventoryProducts();
+let pendingMovements = loadLocal(LS_KEYS.pendingMovements);
+let editingBottlingId = null;
+let editingHoneyId = null;
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2400);
+}
+
+/* ---------- Batch modal (popup) open/close ---------- */
+const overlay = document.getElementById('modalOverlay');
+function openModal(){ overlay.classList.add('open'); document.body.classList.add('modal-open'); overlay.scrollTop = 0; }
+function closeModal(){ overlay.classList.remove('open'); document.body.classList.remove('modal-open'); clearWholeForm(); }
+document.getElementById('closeModal').addEventListener('click', closeModal);
+overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+document.getElementById('openNewBatch').addEventListener('click', ()=>{
+  clearWholeForm();
+  document.getElementById('editing-note').textContent = 'New batch';
+  openModal();
+});
+
+/* ---------- Import modal (popup) open/close ---------- */
+const importOverlay = document.getElementById('importOverlay');
+function openImportModal(){ importOverlay.classList.add('open'); document.body.classList.add('modal-open'); importOverlay.scrollTop = 0; }
+function closeImportModal(){ importOverlay.classList.remove('open'); document.body.classList.remove('modal-open'); }
+document.getElementById('openImport').addEventListener('click', openImportModal);
+document.getElementById('closeImport').addEventListener('click', closeImportModal);
+importOverlay.addEventListener('click', (e)=>{ if(e.target === importOverlay) closeImportModal(); });
+
+/* ---------- Sync status ---------- */
+function updatePendingCount(){
+  const pending = bottlingRecords.filter(r=>!r.synced).length + honeyRecords.filter(r=>!r.synced).length + pendingMovements.filter(r=>!r.synced).length;
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  if(!navigator.onLine){
+    dot.classList.add('offline');
+    text.textContent = pending > 0 ? `offline · ${pending} pending` : 'offline';
+  } else if(pending > 0){
+    dot.classList.add('offline');
+    text.textContent = `syncing · ${pending} pending`;
+  } else {
+    dot.classList.remove('offline');
+    text.textContent = 'online · synced';
+  }
+}
+window.addEventListener('online', ()=>{ updatePendingCount(); syncAll(); });
+window.addEventListener('offline', updatePendingCount);
+
+/* ---------- Smart dropdowns (remembered values + "Add new") ---------- */
+const FIELD_STORE_KEY = 'shed_field_values_v1';
+function loadFieldValues(){ try{ return JSON.parse(localStorage.getItem(FIELD_STORE_KEY)) || {}; }catch(e){ return {}; } }
+function saveFieldValues(v){ localStorage.setItem(FIELD_STORE_KEY, JSON.stringify(v)); }
+let fieldValues = loadFieldValues();
+
+// fieldId -> [table, recordColumn] used to seed remembered values from existing records
+const DROPDOWN_SOURCE = {
+  h_operator: ['honey','operator'],
+  h_temp_phe: ['honey','honey_temp_ex_phe'],
+  h_inlet_pressure: ['honey','honey_inlet_pressure'],
+  h_temp_votator: ['honey','honey_temp_ex_votator'],
+  h_chilled_water_temp: ['honey','chilled_water_temp'],
+  b_operator: ['bottling','operator'],
+  b_starter_qty: ['bottling','starter_honey_qty'],
+  b_batch_size: ['bottling','batch_size'],
+};
+const DROPDOWN_FIELD_IDS = Object.keys(DROPDOWN_SOURCE);
+
+function seedFieldValuesFromRecords(){
+  Object.entries(DROPDOWN_SOURCE).forEach(([fid, [table, col]])=>{
+    const src = table === 'honey' ? honeyRecords : bottlingRecords;
+    const set = new Set(fieldValues[fid] || []);
+    src.forEach(r=>{ const v = r[col]; if(v !== null && v !== undefined && v !== '') set.add(String(v)); });
+    fieldValues[fid] = Array.from(set).sort((a,b)=>{
+      const na = Number(a), nb = Number(b);
+      if(!isNaN(na) && !isNaN(nb)) return na - nb;
+      return String(a).localeCompare(String(b));
+    });
+  });
+  saveFieldValues(fieldValues);
+}
+
+function renderDropdown(fieldId){
+  const sel = document.getElementById(fieldId);
+  if(!sel) return;
+  const current = sel.dataset.current || '';
+  const values = fieldValues[fieldId] || [];
+  sel.innerHTML = '<option value="">— select —</option>' +
+    values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('') +
+    '<option value="__other__">+ Add new…</option>';
+  sel.value = (current && values.includes(current)) ? current : '';
+  sel.dataset.current = sel.value;
+}
+function renderAllDropdowns(){ DROPDOWN_FIELD_IDS.forEach(renderDropdown); }
+
+function showOtherInput(fieldId){
+  const sel = document.getElementById(fieldId);
+  const other = document.getElementById(fieldId + '_other');
+  sel.style.display = 'none';
+  other.style.display = 'block';
+  other.value = '';
+  other.focus();
+}
+function commitOtherInput(fieldId){
+  const sel = document.getElementById(fieldId);
+  const other = document.getElementById(fieldId + '_other');
+  const value = other.value.trim();
+  other.style.display = 'none';
+  sel.style.display = 'block';
+  if(value){
+    if(!(fieldValues[fieldId]||[]).includes(value)){
+      fieldValues[fieldId] = [...(fieldValues[fieldId]||[]), value];
+      saveFieldValues(fieldValues);
+    }
+    sel.dataset.current = value;
+    renderDropdown(fieldId);
+  } else {
+    sel.value = sel.dataset.current || '';
+  }
+  sel.dispatchEvent(new Event('input', {bubbles:true}));
+}
+DROPDOWN_FIELD_IDS.forEach(fieldId=>{
+  const sel = document.getElementById(fieldId);
+  const other = document.getElementById(fieldId + '_other');
+  sel.addEventListener('change', ()=>{
+    if(sel.value === '__other__'){ showOtherInput(fieldId); }
+    else { sel.dataset.current = sel.value; }
+  });
+  other.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); commitOtherInput(fieldId); }
+    else if(e.key === 'Escape'){ other.value=''; commitOtherInput(fieldId); }
+  });
+  other.addEventListener('blur', ()=> commitOtherInput(fieldId));
+});
+
+/* ---------- Operators (feeds the Operator dropdowns) ---------- */
+async function loadOperatorsFromCloud(){
+  if(!supa || !navigator.onLine) return;
+  try{
+    const { data, error } = await supa.from('operators').select('name').order('name');
+    if(!error && data){
+      data.forEach(d=>{ if(!operatorNames.includes(d.name)) operatorNames.push(d.name); });
+      saveLocal(LS_KEYS.operators, operatorNames);
+      operatorNames.forEach(n=>{
+        if(!(fieldValues['h_operator']||[]).includes(n)) fieldValues['h_operator'] = [...(fieldValues['h_operator']||[]), n];
+        if(!(fieldValues['b_operator']||[]).includes(n)) fieldValues['b_operator'] = [...(fieldValues['b_operator']||[]), n];
+      });
+      saveFieldValues(fieldValues);
+      renderDropdown('h_operator'); renderDropdown('b_operator');
+    }
+  }catch(e){}
+}
+async function rememberOperator(name){
+  if(!name) return;
+  if(!operatorNames.includes(name)){
+    operatorNames.push(name);
+    saveLocal(LS_KEYS.operators, operatorNames);
+  }
+  localStorage.setItem(LS_KEYS.lastOperator, name);
+  if(supa && navigator.onLine){ try{ await supa.from('operators').upsert({ name }); }catch(e){} }
+}
+
+/* ---------- Inventory product lookup (read-only) + product-line rows ---------- */
+async function loadInventoryProducts(){
+  if(!invSupa || !navigator.onLine) return;
+  try{
+    const { data, error } = await invSupa.from('products').select('id,product_name,sku,jar_size,blend,mgo').order('product_name');
+    if(!error && data){
+      inventoryProducts = data;
+      saveLocal(LS_KEYS.products, inventoryProducts);
+      indexInventoryProducts();
+    }
+  }catch(e){}
+}
+// product_name in the inventory data already has the jar size baked in (e.g. "Manuka 250g"),
+// so the "Product" dropdown uses the name with that trailing size stripped off.
+function baseProductName(p){
+  const stripped = (p.product_name||'').replace(/\s*\d+(\.\d+)?\s*(kgs|kg|g)$/i, '').trim();
+  return stripped || p.product_name || '';
+}
+function populateProductNameSelect(sel){
+  const names = Array.from(new Set(inventoryProducts.map(baseProductName))).sort();
+  sel.innerHTML = '<option value="">' + (inventoryProducts.length===0 ? '— no products loaded (need signal) —' : '— select product —') + '</option>' +
+    names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+}
+function populateMgoFilterSelect(sel, productName){
+  const mgos = Array.from(new Set(inventoryProducts.filter(p=>baseProductName(p)===productName).map(p=>p.mgo||'').filter(Boolean))).sort();
+  sel.innerHTML = '<option value="">All MGO grades</option>' + mgos.map(m=>`<option value="${escapeHtml(m)}">MGO ${escapeHtml(m)}</option>`).join('');
+  sel.disabled = !productName || mgos.length===0;
+}
+function populateBlendSelect(sel, productName, mgo){
+  const blends = Array.from(new Set(inventoryProducts.filter(p=>baseProductName(p)===productName && (!mgo || p.mgo===mgo)).map(p=>p.blend||'').filter(Boolean))).sort();
+  sel.innerHTML = '<option value="">— select blend —</option>' + blends.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  sel.disabled = !productName || blends.length===0;
+}
+function populateJarSizeSelect(sel, productName, blend, mgo){
+  const sizes = Array.from(new Set(inventoryProducts.filter(p=>baseProductName(p)===productName && p.blend===blend && (!mgo || p.mgo===mgo)).map(p=>p.jar_size||'').filter(Boolean))).sort();
+  sel.innerHTML = '<option value="">— select jar size —</option>' + sizes.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  sel.disabled = !blend || sizes.length===0;
+}
+function resolveProductMatches(productName, blend, jarSize, mgo){
+  return inventoryProducts.filter(p=> baseProductName(p)===productName && p.blend===blend && p.jar_size===jarSize && (!mgo || p.mgo===mgo));
+}
+function createProductLineRow(){
+  const div = document.createElement('div');
+  div.className = 'product-line';
+  div.dataset.productId = '';
+  div.dataset.mode = 'existing';
+  div.innerHTML = `
+    <div class="pl-mode-toggle">
+      <button type="button" class="btn btn-sm pl-mode-btn on" data-mode="existing">Existing product</button>
+      <button type="button" class="btn btn-sm pl-mode-btn" data-mode="new">New product</button>
+    </div>
+
+    <div class="pl-existing">
+      <div class="row2">
+        <div class="field"><label>Product</label><select class="pl-product"></select></div>
+        <div class="field"><label>MGO grade</label><select class="pl-mgo" disabled></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Blend</label><select class="pl-blend" disabled></select></div>
+        <div class="field"><label>Jar Size</label><select class="pl-jarsize" disabled></select></div>
+      </div>
+      <div class="pl-match-note"></div>
+    </div>
+
+    <div class="pl-new" style="display:none;">
+      <div class="row2">
+        <div class="field"><label>Product name</label><input type="text" class="pl-new-product" placeholder="e.g. Manuka"></div>
+        <div class="field"><label>MGO grade</label><input type="text" class="pl-new-mgo" placeholder="e.g. 100+"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Blend</label><input type="text" class="pl-new-blend" placeholder="e.g. Raw Soft-Set"></div>
+        <div class="field"><label>Jar Size</label><input type="text" class="pl-new-jarsize" placeholder="e.g. 250g"></div>
+      </div>
+      <div class="sub" style="margin:0 0 4px 2px;">Not yet in the inventory system — this'll be logged as a new product for the inventory app to review and create.</div>
+    </div>
+
+    <div class="field">
+      <label>Units Packed</label>
+      <input type="number" inputmode="numeric" class="product-qty" placeholder="0">
+    </div>
+    <button type="button" class="btn btn-danger btn-sm remove-product-line">Remove product</button>
+  `;
+  const prodSel = div.querySelector('.pl-product');
+  const mgoSel = div.querySelector('.pl-mgo');
+  const blendSel = div.querySelector('.pl-blend');
+  const jarSel = div.querySelector('.pl-jarsize');
+  const note = div.querySelector('.pl-match-note');
+  const existingBox = div.querySelector('.pl-existing');
+  const newBox = div.querySelector('.pl-new');
+  const modeBtns = div.querySelectorAll('.pl-mode-btn');
+
+  function updateMatch(){
+    div.dataset.productId = '';
+    note.textContent = '';
+    if(!prodSel.value || !blendSel.value || !jarSel.value) return;
+    const matches = resolveProductMatches(prodSel.value, blendSel.value, jarSel.value, mgoSel.value || null);
+    if(matches.length === 0){
+      note.textContent = 'No matching product found for that combination.';
+    } else if(matches.length === 1){
+      div.dataset.productId = matches[0].id;
+    } else {
+      note.textContent = 'Multiple grades match — pick an MGO grade above to narrow it down.';
+    }
+  }
+  populateProductNameSelect(prodSel);
+  prodSel.addEventListener('change', ()=>{
+    populateMgoFilterSelect(mgoSel, prodSel.value);
+    populateBlendSelect(blendSel, prodSel.value, mgoSel.value);
+    jarSel.innerHTML = '<option value="">— select jar size —</option>'; jarSel.disabled = true;
+    updateMatch();
+  });
+  mgoSel.addEventListener('change', ()=>{
+    populateBlendSelect(blendSel, prodSel.value, mgoSel.value);
+    jarSel.innerHTML = '<option value="">— select jar size —</option>'; jarSel.disabled = true;
+    updateMatch();
+  });
+  blendSel.addEventListener('change', ()=>{
+    populateJarSizeSelect(jarSel, prodSel.value, blendSel.value, mgoSel.value);
+    updateMatch();
+  });
+  jarSel.addEventListener('change', updateMatch);
+
+  modeBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      modeBtns.forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      div.dataset.mode = btn.dataset.mode;
+      const isNew = btn.dataset.mode === 'new';
+      existingBox.style.display = isNew ? 'none' : 'block';
+      newBox.style.display = isNew ? 'block' : 'none';
+      div.dataset.productId = '';
+      note.textContent = '';
+      updateSectionStatuses();
+    });
+  });
+
+  div.querySelector('.remove-product-line').addEventListener('click', ()=>{ div.remove(); updateSectionStatuses(); });
+  return div;
+}
+document.getElementById('add_product_line').addEventListener('click', ()=>{
+  document.getElementById('product-lines').appendChild(createProductLineRow());
+});
+function clearProductLines(){ document.getElementById('product-lines').innerHTML = ''; }
+function collectProductLines(){
+  const lines = [];
+  document.querySelectorAll('#product-lines .product-line').forEach(row=>{
+    const qty = row.querySelector('.product-qty').value;
+    if(qty === '') return;
+    const mode = row.dataset.mode || 'existing';
+    if(mode === 'new'){
+      const productName = row.querySelector('.pl-new-product').value.trim();
+      if(!productName) return;
+      lines.push({
+        product_id: null,
+        product_name: productName,
+        sku: '',
+        jar_size: row.querySelector('.pl-new-jarsize').value.trim(),
+        blend: row.querySelector('.pl-new-blend').value.trim(),
+        mgo: row.querySelector('.pl-new-mgo').value.trim(),
+        quantity: Number(qty)
+      });
+    } else {
+      const productId = row.dataset.productId;
+      if(!productId) return;
+      const p = inventoryProductsById[productId] || {};
+      lines.push({ product_id: productId, product_name: p.product_name || '', sku: p.sku || '', jar_size: p.jar_size || '', blend: p.blend || '', mgo: p.mgo || '', quantity: Number(qty) });
+    }
+  });
+  return lines;
+}
+
+/* ---------- Pending stock movements (written to the inventory project, not auto-applied) ---------- */
+async function syncPendingMovements(){
+  if(!invSupa || !navigator.onLine){ updatePendingCount(); return; }
+  for(const rec of pendingMovements.filter(r=>!r.synced)){
+    const payload = { ...rec }; delete payload.local_id; delete payload.synced;
+    try{
+      const res = await invSupa.from('pending_bottling_movements').insert(payload).select().single();
+      if(!res.error && res.data){ rec.synced = true; }
+    }catch(e){}
+  }
+  saveLocal(LS_KEYS.pendingMovements, pendingMovements);
+  updatePendingCount();
+}
+
+/* ---------- Field helpers ---------- */
+function uid(){ return 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,9); }
+function val(id){ return document.getElementById(id).value; }
+function setVal(id, v){
+  const el = document.getElementById(id);
+  const value = (v===null || v===undefined) ? '' : String(v);
+  if(DROPDOWN_FIELD_IDS.includes(id)){
+    if(value !== '' && !(fieldValues[id]||[]).includes(value)){
+      fieldValues[id] = [...(fieldValues[id]||[]), value];
+      saveFieldValues(fieldValues);
+    }
+    el.dataset.current = value;
+    renderDropdown(id);
+  } else {
+    el.value = value;
+  }
+}
+function numOrNull(v){ return (v===''||v===null||v===undefined) ? null : Number(v); }
+
+/* ---------- Section status pills ---------- */
+function anyHoneyFilled(){
+  return !!(val('h_date')||val('h_operator')||val('h_plant_checked_clean')||val('h_plant_assembled')||
+    val('h_start_time')||val('h_end_time')||val('h_temp_phe')||val('h_inlet_pressure')||
+    val('h_temp_votator')||val('h_chilled_water_temp')||val('h_notes'));
+}
+function anyBottlingFilled(){
+  return !!(val('b_manufacture_date')||val('b_operator')||val('b_equip_clean_date')||val('b_plant_assembled_date')||
+    val('b_start_time')||val('b_end_time')||val('b_starter_qty')||val('b_batch_size')||val('b_notes')) ||
+    collectProductLines().length > 0;
+}
+function updateSectionStatuses(){
+  const hs = document.getElementById('honey-status');
+  const bs = document.getElementById('bottling-status');
+  hs.textContent = anyHoneyFilled() ? 'filled' : 'not filled';
+  hs.className = 'section-status ' + (anyHoneyFilled() ? 'filled' : 'empty');
+  bs.textContent = anyBottlingFilled() ? 'filled' : 'not filled';
+  bs.className = 'section-status ' + (anyBottlingFilled() ? 'filled' : 'empty');
+}
+document.querySelector('.modal-body').addEventListener('input', updateSectionStatuses);
+document.querySelector('.modal-body').addEventListener('change', updateSectionStatuses);
+
+/* ---------- Collect / clear / load ---------- */
+function collectHoney(){
+  return {
+    batch_no: val('m_batch_no').trim(),
+    process_date: val('h_date') || null,
+    operator: val('h_operator').trim(),
+    plant_checked_clean: val('h_plant_checked_clean') || null,
+    plant_assembled: val('h_plant_assembled') || null,
+    process_start_time: val('h_start_time') || null,
+    process_end_time: val('h_end_time') || null,
+    honey_temp_ex_phe: numOrNull(val('h_temp_phe')),
+    honey_inlet_pressure: numOrNull(val('h_inlet_pressure')),
+    honey_temp_ex_votator: numOrNull(val('h_temp_votator')),
+    chilled_water_temp: numOrNull(val('h_chilled_water_temp')),
+    notes: val('h_notes').trim() || null
+  };
+}
+function collectBottling(){
+  return {
+    batch_no: val('m_batch_no').trim(),
+    manufacture_date: val('b_manufacture_date') || null,
+    operator: val('b_operator').trim(),
+    equip_clean_date: val('b_equip_clean_date') || null,
+    plant_assembled_date: val('b_plant_assembled_date') || null,
+    process_start_time: val('b_start_time') || null,
+    process_end_time: val('b_end_time') || null,
+    starter_honey_qty: numOrNull(val('b_starter_qty')),
+    starter_honey_unit: val('b_starter_unit'),
+    batch_size: numOrNull(val('b_batch_size')),
+    notes: val('b_notes').trim() || null
+  };
+}
+function clearHoneySection(){
+  ['h_date','h_plant_checked_clean','h_plant_assembled','h_start_time','h_end_time','h_temp_phe',
+   'h_inlet_pressure','h_temp_votator','h_chilled_water_temp','h_notes'].forEach(id=>setVal(id,''));
+  const last = localStorage.getItem(LS_KEYS.lastOperator);
+  setVal('h_operator', last || '');
+  editingHoneyId = null;
+  updateSectionStatuses();
+}
+function clearBottlingSection(){
+  ['b_manufacture_date','b_equip_clean_date','b_plant_assembled_date','b_start_time','b_end_time',
+   'b_starter_qty','b_batch_size','b_notes'].forEach(id=>setVal(id,''));
+  setVal('b_starter_unit','kg');
+  const last = localStorage.getItem(LS_KEYS.lastOperator);
+  setVal('b_operator', last || '');
+  editingBottlingId = null;
+  clearProductLines();
+  updateSectionStatuses();
+}
+function clearWholeForm(){
+  setVal('m_batch_no','');
+  clearHoneySection();
+  clearBottlingSection();
+  document.getElementById('editing-note').textContent = 'New batch';
+}
+function loadHoneyIntoForm(rec){
+  setVal('h_date', rec.process_date);
+  setVal('h_operator', rec.operator);
+  setVal('h_plant_checked_clean', rec.plant_checked_clean);
+  setVal('h_plant_assembled', rec.plant_assembled);
+  setVal('h_start_time', rec.process_start_time);
+  setVal('h_end_time', rec.process_end_time);
+  setVal('h_temp_phe', rec.honey_temp_ex_phe);
+  setVal('h_inlet_pressure', rec.honey_inlet_pressure);
+  setVal('h_temp_votator', rec.honey_temp_ex_votator);
+  setVal('h_chilled_water_temp', rec.chilled_water_temp);
+  setVal('h_notes', rec.notes);
+  editingHoneyId = rec.local_id;
+}
+function loadBottlingIntoForm(rec){
+  setVal('b_manufacture_date', rec.manufacture_date);
+  setVal('b_operator', rec.operator);
+  setVal('b_equip_clean_date', rec.equip_clean_date);
+  setVal('b_plant_assembled_date', rec.plant_assembled_date);
+  setVal('b_start_time', rec.process_start_time);
+  setVal('b_end_time', rec.process_end_time);
+  setVal('b_starter_qty', rec.starter_honey_qty);
+  setVal('b_starter_unit', rec.starter_honey_unit || 'kg');
+  setVal('b_batch_size', rec.batch_size);
+  setVal('b_notes', rec.notes);
+  editingBottlingId = rec.local_id;
+}
+function openBatchForEditing(batchNo, honeyRec, bottlingRec){
+  clearWholeForm();
+  setVal('m_batch_no', batchNo);
+  const h = honeyRec || honeyRecords.filter(r=>r.batch_no===batchNo).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
+  const b = bottlingRec || bottlingRecords.filter(r=>r.batch_no===batchNo).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
+  if(h) loadHoneyIntoForm(h);
+  if(b) loadBottlingIntoForm(b);
+  updateSectionStatuses();
+  document.getElementById('editing-note').textContent = `Editing batch ${batchNo}`;
+  openModal();
+}
+document.getElementById('h_clear_section').addEventListener('click', clearHoneySection);
+document.getElementById('b_clear_section').addEventListener('click', clearBottlingSection);
+document.getElementById('clear_all').addEventListener('click', clearWholeForm);
+
+/* ---------- Save ---------- */
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  const batchNo = val('m_batch_no').trim();
+  if(!batchNo){ toast('Batch No is required'); return; }
+  const doHoney = anyHoneyFilled();
+  const doBottling = anyBottlingFilled();
+  if(!doHoney && !doBottling){ toast('Fill in Processing, Bottling, or both'); return; }
+
+  if(doHoney){
+    const data = collectHoney();
+    if(!data.process_date){ toast('Processing Date is required'); return; }
+    if(!data.operator){ toast('Processing Operator is required'); return; }
+  }
+  if(doBottling){
+    const data = collectBottling();
+    if(!data.manufacture_date){ toast('Manufacture Date is required'); return; }
+    if(!data.operator){ toast('Bottling Operator is required'); return; }
+  }
+
+  if(doHoney){
+    const data = collectHoney();
+    await rememberOperator(data.operator);
+    if(editingHoneyId){
+      const idx = honeyRecords.findIndex(r=>r.local_id===editingHoneyId);
+      if(idx>-1) honeyRecords[idx] = {...honeyRecords[idx], ...data, synced:false, updated_at:new Date().toISOString()};
+    } else {
+      honeyRecords.unshift({ local_id: uid(), remote_id:null, synced:false, created_at:new Date().toISOString(), ...data });
+    }
+    saveLocal(LS_KEYS.honey, honeyRecords);
+  }
+  if(doBottling){
+    const data = collectBottling();
+    await rememberOperator(data.operator);
+    if(editingBottlingId){
+      const idx = bottlingRecords.findIndex(r=>r.local_id===editingBottlingId);
+      if(idx>-1) bottlingRecords[idx] = {...bottlingRecords[idx], ...data, synced:false, updated_at:new Date().toISOString()};
+    } else {
+      bottlingRecords.unshift({ local_id: uid(), remote_id:null, synced:false, created_at:new Date().toISOString(), ...data });
+    }
+    saveLocal(LS_KEYS.bottling, bottlingRecords);
+
+    const productLines = collectProductLines();
+    if(productLines.length){
+      productLines.forEach(line=>{
+        pendingMovements.unshift({
+          local_id: uid(), synced:false, created_at:new Date().toISOString(),
+          product_id: line.product_id, product_name: line.product_name, sku: line.sku, jar_size: line.jar_size,
+          blend: line.blend, mgo: line.mgo,
+          batch_no: batchNo, quantity: line.quantity, location: 'mataatua',
+          submitted_by: data.operator, status: 'pending', notes: null
+        });
+      });
+      saveLocal(LS_KEYS.pendingMovements, pendingMovements);
+    }
+  }
+
+  toast('Batch record saved');
+  updatePendingCount();
+  syncAll();
+  seedFieldValuesFromRecords();
+  closeModal();
+});
+
+/* ---------- Sync to Supabase ---------- */
+async function syncBottling(){
+  if(!supa || !navigator.onLine){ updatePendingCount(); return; }
+  for(const rec of bottlingRecords.filter(r=>!r.synced)){
+    const payload = { ...rec }; delete payload.local_id; delete payload.remote_id; delete payload.synced;
+    try{
+      const res = rec.remote_id
+        ? await supa.from('bottling_records').update(payload).eq('id', rec.remote_id).select().single()
+        : await supa.from('bottling_records').insert(payload).select().single();
+      if(!res.error && res.data){ rec.synced = true; rec.remote_id = res.data.id; }
+    }catch(e){}
+  }
+  saveLocal(LS_KEYS.bottling, bottlingRecords);
+  updatePendingCount(); renderLists();
+}
+async function syncHoney(){
+  if(!supa || !navigator.onLine){ updatePendingCount(); return; }
+  for(const rec of honeyRecords.filter(r=>!r.synced)){
+    const payload = { ...rec }; delete payload.local_id; delete payload.remote_id; delete payload.synced;
+    try{
+      const res = rec.remote_id
+        ? await supa.from('honey_records').update(payload).eq('id', rec.remote_id).select().single()
+        : await supa.from('honey_records').insert(payload).select().single();
+      if(!res.error && res.data){ rec.synced = true; rec.remote_id = res.data.id; }
+    }catch(e){}
+  }
+  saveLocal(LS_KEYS.honey, honeyRecords);
+  updatePendingCount(); renderLists();
+}
+function syncAll(){ syncBottling(); syncHoney(); syncPendingMovements(); }
+
+/* ---------- Pull recent cloud records ---------- */
+async function pullFromCloud(){
+  if(!supa || !navigator.onLine) return;
+  try{
+    const { data: bData } = await supa.from('bottling_records').select('*').order('created_at', {ascending:false}).limit(1000);
+    if(bData){
+      bData.forEach(remote=>{
+        const existing = bottlingRecords.find(r=>r.remote_id===remote.id);
+        if(existing) Object.assign(existing, remote, { local_id: existing.local_id, remote_id: remote.id, synced:true });
+        else bottlingRecords.push({ local_id: uid(), remote_id: remote.id, synced:true, ...remote });
+      });
+      bottlingRecords.sort((a,b)=> new Date(b.manufacture_date||b.created_at) - new Date(a.manufacture_date||a.created_at));
+      saveLocal(LS_KEYS.bottling, bottlingRecords);
+    }
+    const { data: hData } = await supa.from('honey_records').select('*').order('created_at', {ascending:false}).limit(1000);
+    if(hData){
+      hData.forEach(remote=>{
+        const existing = honeyRecords.find(r=>r.remote_id===remote.id);
+        if(existing) Object.assign(existing, remote, { local_id: existing.local_id, remote_id: remote.id, synced:true });
+        else honeyRecords.push({ local_id: uid(), remote_id: remote.id, synced:true, ...remote });
+      });
+      honeyRecords.sort((a,b)=> new Date(b.process_date||b.created_at) - new Date(a.process_date||a.created_at));
+      saveLocal(LS_KEYS.honey, honeyRecords);
+    }
+  }catch(e){ console.error(e); }
+  updatePendingCount();
+  seedFieldValuesFromRecords();
+  renderLists();
+}
+
+/* ---------- Lists (rendered as tables) ---------- */
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d + 'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-NZ', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function renderLists(){
+  const bTable = document.getElementById('bottling-table');
+  const hTable = document.getElementById('honey-table');
+  document.querySelectorAll('.empty-placeholder').forEach(e=>e.remove());
+
+  hTable.innerHTML = honeyRecords.length===0 ? '' : `
+    <thead><tr><th>Batch No</th><th>Date</th><th>Operator</th><th>Status</th></tr></thead>
+    <tbody>${honeyRecords.slice(0,150).map(r=>`
+      <tr data-id="${r.local_id}">
+        <td class="batch">${escapeHtml(r.batch_no||'—')}</td>
+        <td>${fmtDate(r.process_date)}</td>
+        <td>${escapeHtml(r.operator||'—')}</td>
+        <td><span class="status-badge ${r.synced?'synced':'pending'}">${r.synced?'synced':'pending'}</span></td>
+      </tr>`).join('')}</tbody>`;
+  document.getElementById('honey-count').textContent = honeyRecords.length===0 ? '' : `${honeyRecords.length} record(s)`;
+
+  bTable.innerHTML = bottlingRecords.length===0 ? '' : `
+    <thead><tr><th>Batch No</th><th>Manufacture Date</th><th>Operator</th><th>Status</th></tr></thead>
+    <tbody>${bottlingRecords.slice(0,150).map(r=>`
+      <tr data-id="${r.local_id}">
+        <td class="batch">${escapeHtml(r.batch_no||'—')}</td>
+        <td>${fmtDate(r.manufacture_date)}</td>
+        <td>${escapeHtml(r.operator||'—')}</td>
+        <td><span class="status-badge ${r.synced?'synced':'pending'}">${r.synced?'synced':'pending'}</span></td>
+      </tr>`).join('')}</tbody>`;
+  document.getElementById('bottling-count').textContent = bottlingRecords.length===0 ? '' : `${bottlingRecords.length} record(s)`;
+
+  if(honeyRecords.length===0) hTable.insertAdjacentHTML('afterend', '<div class="empty empty-placeholder">No honey processing records yet.</div>');
+  if(bottlingRecords.length===0) bTable.insertAdjacentHTML('afterend', '<div class="empty empty-placeholder">No bottling records yet.</div>');
+
+  hTable.querySelectorAll('tbody tr').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const rec = honeyRecords.find(r=>r.local_id===el.dataset.id);
+      if(rec) openBatchForEditing(rec.batch_no, rec, null);
+    });
+  });
+  bTable.querySelectorAll('tbody tr').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const rec = bottlingRecords.find(r=>r.local_id===el.dataset.id);
+      if(rec) openBatchForEditing(rec.batch_no, null, rec);
+    });
+  });
+}
+
+/* ---------- CSV export ---------- */
+function csvEscape(v){
+  if(v===null || v===undefined) return '';
+  const s = String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function qtyStr(qty, unit){ if(qty===null||qty===undefined||qty==='') return ''; return `${qty}${unit||'kg'}`; }
+function timeStr(t){ if(!t) return ''; return t.length===5 ? t + ':00' : t; }
+function downloadCsv(filename, rows){
+  const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('export-bottling').addEventListener('click', ()=>{
+  const header = ['Batch No','Manufacture Date','Operator',"Equip Clean App'd For Use",'Plant Assembled',
+    'Process Start Time','Process End Time','Starter Honey Addition Quantity','Batch Size',
+    'Amount in kgs','Amount in gms','No Units Packed','Notes'];
+  const rows = [header, ...bottlingRecords.map(r=>[
+    r.batch_no, fmtDate(r.manufacture_date), r.operator, fmtDate(r.equip_clean_date), fmtDate(r.plant_assembled_date),
+    timeStr(r.process_start_time), timeStr(r.process_end_time), qtyStr(r.starter_honey_qty, r.starter_honey_unit),
+    r.batch_size ?? '', r.amount_kgs ?? '', r.amount_gms ?? '', r.units_packed ?? '', r.notes ?? ''
+  ])];
+  downloadCsv('bottling_processing_record.csv', rows);
+});
+document.getElementById('export-honey').addEventListener('click', ()=>{
+  const header = ['Batch No','Date','Operator','PlantChecked Clean','Plant Assembled','Process Start Time',
+    'Process End Time','Honey Temp Ex No2 PHE','Honey Inlet Pressure','Honey Temp Ex Votator',
+    'Chilled Water Temp','Starter Honey Addition Quantity','Notes'];
+  const rows = [header, ...honeyRecords.map(r=>[
+    r.batch_no, fmtDate(r.process_date), r.operator, fmtDate(r.plant_checked_clean), fmtDate(r.plant_assembled),
+    timeStr(r.process_start_time), timeStr(r.process_end_time), r.honey_temp_ex_phe ?? '', r.honey_inlet_pressure ?? '',
+    r.honey_temp_ex_votator ?? '', r.chilled_water_temp ?? '', qtyStr(r.starter_honey_qty, r.starter_honey_unit), r.notes ?? ''
+  ])];
+  downloadCsv('honey_processing_record.csv', rows);
+});
+document.getElementById('refresh-bottling').addEventListener('click', ()=>{ toast('Refreshing…'); pullFromCloud(); });
+document.getElementById('refresh-honey').addEventListener('click', ()=>{ toast('Refreshing…'); pullFromCloud(); });
+
+/* ---------- CSV import ---------- */
+function parseCsv(text){
+  const rows = []; let row = []; let field = ''; let inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; } else { inQuotes = false; }
+      } else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ /* skip */ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(f => f.trim() !== ''));
+}
+function normHeader(h){ return h.trim().toLowerCase().replace(/[^a-z0-9]/g,''); }
+function findCol(headerMap, ...candidates){
+  for(const c of candidates){ const n = normHeader(c); if(headerMap[n] !== undefined) return headerMap[n]; }
+  return -1;
+}
+function parseImportDate(s){
+  if(!s) return null;
+  s = s.trim(); if(!s) return null;
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(m){
+    let [_, d, mo, y] = m;
+    if(y.length===2) y = '20'+y;
+    return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return iso[0];
+  return null;
+}
+function parseImportTime(s){
+  if(!s) return null;
+  s = s.trim(); if(!s) return null;
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  return `${m[1].padStart(2,'0')}:${m[2]}`;
+}
+function parseImportQty(s){
+  if(s===null||s===undefined) return { qty:null, unit:'kg' };
+  s = String(s).trim();
+  const m = s.match(/^([\d.]+)\s*(kg|g)?/i);
+  if(!m || m[1]==='') return { qty:null, unit:'kg' };
+  return { qty: Number(m[1]), unit: (m[2]||'kg').toLowerCase() };
+}
+function parseImportNum(s){
+  if(s===null||s===undefined) return null;
+  s = String(s).trim();
+  if(s==='') return null;
+  const n = Number(s.replace(/[^0-9.\-]/g,''));
+  return isNaN(n) ? null : n;
+}
+
+document.getElementById('import-bottling-file').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const statusEl = document.getElementById('import-bottling-status');
+  statusEl.textContent = `Reading ${file.name}…`;
+  const text = await file.text();
+  const rows = parseCsv(text);
+  if(rows.length < 2){ statusEl.textContent = 'No data rows found.'; return; }
+  const header = rows[0];
+  const map = {}; header.forEach((h,i)=> map[normHeader(h)] = i);
+  const iBatch = findCol(map,'Batch No');
+  const iMfgDate = findCol(map,'Manufacture Date');
+  const iOperator = findCol(map,'Operator');
+  const iEquipClean = findCol(map,"Equip Clean App'd For Use");
+  const iPlantAsm = findCol(map,'Plant Assembled');
+  const iStart = findCol(map,'Process Start Time');
+  const iEnd = findCol(map,'Process End Time');
+  const iStarterQty = findCol(map,'Starter Honey Addition Quantity');
+  const iBatchSize = findCol(map,'Batch Size');
+  const iAmtKg = findCol(map,'Amount in kgs');
+  const iAmtG = findCol(map,'Amount in gms');
+  const iUnits = findCol(map,'No Units Packed');
+  const iNotes = findCol(map,'Notes');
+  if(iBatch === -1){ statusEl.textContent = 'Could not find a "Batch No" column — check the file.'; return; }
+
+  let count = 0;
+  for(const r of rows.slice(1)){
+    const batchNo = (r[iBatch]||'').trim();
+    if(!batchNo) continue;
+    const qty = iStarterQty>-1 ? parseImportQty(r[iStarterQty]) : {qty:null,unit:'kg'};
+    bottlingRecords.unshift({
+      local_id: uid(), remote_id:null, synced:false, created_at:new Date().toISOString(),
+      batch_no: batchNo,
+      manufacture_date: iMfgDate>-1 ? parseImportDate(r[iMfgDate]) : null,
+      operator: iOperator>-1 ? (r[iOperator]||'').trim() : '',
+      equip_clean_date: iEquipClean>-1 ? parseImportDate(r[iEquipClean]) : null,
+      plant_assembled_date: iPlantAsm>-1 ? parseImportDate(r[iPlantAsm]) : null,
+      process_start_time: iStart>-1 ? parseImportTime(r[iStart]) : null,
+      process_end_time: iEnd>-1 ? parseImportTime(r[iEnd]) : null,
+      starter_honey_qty: qty.qty, starter_honey_unit: qty.unit,
+      batch_size: iBatchSize>-1 ? parseImportNum(r[iBatchSize]) : null,
+      amount_kgs: iAmtKg>-1 ? parseImportNum(r[iAmtKg]) : null,
+      amount_gms: iAmtG>-1 ? parseImportNum(r[iAmtG]) : null,
+      units_packed: iUnits>-1 ? parseImportNum(r[iUnits]) : null,
+      notes: iNotes>-1 ? (r[iNotes]||null) : null
+    });
+    count++;
+  }
+  saveLocal(LS_KEYS.bottling, bottlingRecords);
+  statusEl.textContent = `Imported ${count} row(s) from ${file.name}. Syncing to cloud…`;
+  updatePendingCount(); seedFieldValuesFromRecords(); renderLists();
+  syncBottling().then(()=> statusEl.textContent = `Imported ${count} row(s) from ${file.name} — synced.`);
+  e.target.value = '';
+});
+
+document.getElementById('import-honey-file').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const statusEl = document.getElementById('import-honey-status');
+  statusEl.textContent = `Reading ${file.name}…`;
+  const text = await file.text();
+  const rows = parseCsv(text);
+  if(rows.length < 2){ statusEl.textContent = 'No data rows found.'; return; }
+  const header = rows[0];
+  const map = {}; header.forEach((h,i)=> map[normHeader(h)] = i);
+  const iBatch = findCol(map,'Batch No');
+  const iDate = findCol(map,'Date');
+  const iOperator = findCol(map,'Operator');
+  const iPlantClean = findCol(map,'PlantChecked Clean','Plant Checked Clean');
+  const iPlantAsm = findCol(map,'Plant Assembled');
+  const iStart = findCol(map,'Process Start Time');
+  const iEnd = findCol(map,'Process End Time');
+  const iPhe = findCol(map,'Honey Temp Ex No2 PHE');
+  const iPressure = findCol(map,'Honey Inlet Pressure');
+  const iVotator = findCol(map,'Honey Temp Ex Votator');
+  const iChilled = findCol(map,'Chilled Water Temp');
+  const iStarterQty = findCol(map,'Starter Honey Addition Quantity');
+  const iNotes = findCol(map,'Notes');
+  if(iBatch === -1){ statusEl.textContent = 'Could not find a "Batch No" column — check the file.'; return; }
+
+  let count = 0;
+  for(const r of rows.slice(1)){
+    const batchNo = (r[iBatch]||'').trim();
+    if(!batchNo) continue;
+    const qty = iStarterQty>-1 ? parseImportQty(r[iStarterQty]) : {qty:null,unit:'kg'};
+    honeyRecords.unshift({
+      local_id: uid(), remote_id:null, synced:false, created_at:new Date().toISOString(),
+      batch_no: batchNo,
+      process_date: iDate>-1 ? parseImportDate(r[iDate]) : null,
+      operator: iOperator>-1 ? (r[iOperator]||'').trim() : '',
+      plant_checked_clean: iPlantClean>-1 ? parseImportDate(r[iPlantClean]) : null,
+      plant_assembled: iPlantAsm>-1 ? parseImportDate(r[iPlantAsm]) : null,
+      process_start_time: iStart>-1 ? parseImportTime(r[iStart]) : null,
+      process_end_time: iEnd>-1 ? parseImportTime(r[iEnd]) : null,
+      honey_temp_ex_phe: iPhe>-1 ? parseImportNum(r[iPhe]) : null,
+      honey_inlet_pressure: iPressure>-1 ? parseImportNum(r[iPressure]) : null,
+      honey_temp_ex_votator: iVotator>-1 ? parseImportNum(r[iVotator]) : null,
+      chilled_water_temp: iChilled>-1 ? parseImportNum(r[iChilled]) : null,
+      starter_honey_qty: qty.qty, starter_honey_unit: qty.unit,
+      notes: iNotes>-1 ? (r[iNotes]||null) : null
+    });
+    count++;
+  }
+  saveLocal(LS_KEYS.honey, honeyRecords);
+  statusEl.textContent = `Imported ${count} row(s) from ${file.name}. Syncing to cloud…`;
+  updatePendingCount(); seedFieldValuesFromRecords(); renderLists();
+  syncHoney().then(()=> statusEl.textContent = `Imported ${count} row(s) from ${file.name} — synced.`);
+  e.target.value = '';
+});
+
+/* ---------- Clock picker ---------- */
+const clockOverlay = document.getElementById('clockOverlay');
+let clockTargetId = null;
+let clockStep = 'hour';
+let clockHour24 = 8;
+let clockMinute = 0;
+
+function hour24to12(h){ const h12 = h % 12; return h12===0 ? 12 : h12; }
+function setHandAngle(angleDeg){
+  const rad = angleDeg * Math.PI/180;
+  const len = 78;
+  const x2 = 110 + len*Math.cos(rad);
+  const y2 = 110 + len*Math.sin(rad);
+  const hand = document.getElementById('clockHand');
+  hand.setAttribute('x2', x2); hand.setAttribute('y2', y2);
+}
+function renderClockFace(){
+  const g = document.getElementById('clockNumbers');
+  g.innerHTML = '';
+  const cx=110, cy=110, rNum=82;
+  if(clockStep === 'hour'){
+    for(let i=1;i<=12;i++){
+      const angle = i*30 - 90;
+      const rad = angle*Math.PI/180;
+      const x = cx + rNum*Math.cos(rad);
+      const y = cy + rNum*Math.sin(rad);
+      const isSelected = hour24to12(clockHour24) === i;
+      g.insertAdjacentHTML('beforeend', `<text x="${x}" y="${y}" class="clock-num ${isSelected?'selected':''}" text-anchor="middle" dominant-baseline="central">${i}</text>`);
+    }
+    setHandAngle((hour24to12(clockHour24)%12)*30 - 90);
+  } else {
+    for(let i=0;i<12;i++){
+      const minuteVal = i*5;
+      const angle = i*30 - 90;
+      const rad = angle*Math.PI/180;
+      const x = cx + rNum*Math.cos(rad);
+      const y = cy + rNum*Math.sin(rad);
+      const isSelected = clockMinute === minuteVal;
+      g.insertAdjacentHTML('beforeend', `<text x="${x}" y="${y}" class="clock-num ${isSelected?'selected':''}" text-anchor="middle" dominant-baseline="central">${String(minuteVal).padStart(2,'0')}</text>`);
+    }
+    setHandAngle((clockMinute/60)*360 - 90);
+  }
+}
+function renderClock(){
+  const isPM = clockHour24 >= 12;
+  document.getElementById('amBtn').classList.toggle('active', !isPM);
+  document.getElementById('pmBtn').classList.toggle('active', isPM);
+  document.getElementById('clockHourDisplay').textContent = String(hour24to12(clockHour24)).padStart(2,'0');
+  document.getElementById('clockMinDisplay').textContent = String(clockMinute).padStart(2,'0');
+  document.getElementById('clockHourDisplay').classList.toggle('active', clockStep==='hour');
+  document.getElementById('clockMinDisplay').classList.toggle('active', clockStep==='minute');
+  renderClockFace();
+}
+function openClockPicker(targetId){
+  clockTargetId = targetId;
+  const el = document.getElementById(targetId);
+  const existing = el.value;
+  if(existing){
+    const [h,m] = existing.split(':').map(Number);
+    clockHour24 = h; clockMinute = m;
+  } else {
+    const now = new Date();
+    clockHour24 = now.getHours(); clockMinute = Math.round(now.getMinutes()/5)*5 % 60;
+  }
+  clockStep = 'hour';
+  renderClock();
+  clockOverlay.classList.add('open');
+  document.body.classList.add('modal-open');
+}
+function closeClockPicker(){
+  clockOverlay.classList.remove('open');
+  document.body.classList.remove('modal-open');
+}
+document.querySelectorAll('.clock-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> openClockPicker(btn.dataset.target));
+});
+document.getElementById('clockSvg').addEventListener('click', (e)=>{
+  const svg = document.getElementById('clockSvg');
+  const rect = svg.getBoundingClientRect();
+  const scaleX = 220/rect.width, scaleY = 220/rect.height;
+  const x = (e.clientX-rect.left)*scaleX - 110;
+  const y = (e.clientY-rect.top)*scaleY - 110;
+  let angleDeg = Math.atan2(y,x)*180/Math.PI;
+  angleDeg = (angleDeg + 90 + 360) % 360;
+  if(clockStep === 'hour'){
+    let h12 = Math.round(angleDeg/30) % 12; if(h12===0) h12 = 12;
+    const isPM = clockHour24 >= 12;
+    clockHour24 = (h12 % 12) + (isPM ? 12 : 0);
+    clockStep = 'minute';
+  } else {
+    clockMinute = Math.round(angleDeg/6) % 60;
+  }
+  renderClock();
+});
+document.getElementById('amBtn').addEventListener('click', ()=>{ if(clockHour24>=12) clockHour24-=12; renderClock(); });
+document.getElementById('pmBtn').addEventListener('click', ()=>{ if(clockHour24<12) clockHour24+=12; renderClock(); });
+document.getElementById('clockHourDisplay').addEventListener('click', ()=>{ clockStep='hour'; renderClock(); });
+document.getElementById('clockMinDisplay').addEventListener('click', ()=>{ clockStep='minute'; renderClock(); });
+document.getElementById('clockDone').addEventListener('click', ()=>{
+  if(clockTargetId){
+    const hh = String(clockHour24).padStart(2,'0');
+    const mm = String(clockMinute).padStart(2,'0');
+    const el = document.getElementById(clockTargetId);
+    el.value = `${hh}:${mm}`;
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+  }
+  closeClockPicker();
+});
+document.getElementById('clockCancel').addEventListener('click', closeClockPicker);
+clockOverlay.addEventListener('click', (e)=>{ if(e.target === clockOverlay) closeClockPicker(); });
+
+/* ---------- Save as PDF (print) ---------- */
+function buildPrintView(){
+  const batchNo = val('m_batch_no').trim() || '—';
+  const h = collectHoney();
+  const b = collectBottling();
+  const showHoney = anyHoneyFilled();
+  const showBottling = anyBottlingFilled();
+  let html = `<div class="p-title">Manawa Honey — Batch Record</div>
+    <div class="p-sub">Batch No: <strong>${escapeHtml(batchNo)}</strong> &nbsp;·&nbsp; Printed ${new Date().toLocaleString('en-NZ')}</div>`;
+
+  if(showHoney){
+    html += `<div class="p-section"><h3>Honey Processing</h3><div class="p-grid">
+      ${prow('Date', fmtDate(h.process_date))}
+      ${prow('Operator', h.operator)}
+      ${prow('Plant Checked Clean', fmtDate(h.plant_checked_clean))}
+      ${prow('Plant Assembled', fmtDate(h.plant_assembled))}
+      ${prow('Process Start Time', h.process_start_time)}
+      ${prow('Process End Time', h.process_end_time)}
+      ${prow('Honey Temp Ex No2 PHE', h.honey_temp_ex_phe)}
+      ${prow('Honey Inlet Pressure', h.honey_inlet_pressure)}
+      ${prow('Honey Temp Ex Votator', h.honey_temp_ex_votator)}
+      ${prow('Chilled Water Temp', h.chilled_water_temp)}
+    </div>${h.notes ? `<div class="p-notes"><strong>Notes:</strong> ${escapeHtml(h.notes)}</div>` : ''}</div>`;
+  }
+  if(showBottling){
+    html += `<div class="p-section"><h3>Bottling</h3><div class="p-grid">
+      ${prow('Manufacture Date', fmtDate(b.manufacture_date))}
+      ${prow('Operator', b.operator)}
+      ${prow("Equip Clean App'd For Use", fmtDate(b.equip_clean_date))}
+      ${prow('Plant Assembled', fmtDate(b.plant_assembled_date))}
+      ${prow('Process Start Time', b.process_start_time)}
+      ${prow('Process End Time', b.process_end_time)}
+      ${prow('Starter Honey Addition Qty', qtyStr(b.starter_honey_qty, b.starter_honey_unit))}
+      ${prow('Batch Size (kg)', b.batch_size)}
+    </div>${b.notes ? `<div class="p-notes"><strong>Notes:</strong> ${escapeHtml(b.notes)}</div>` : ''}</div>`;
+  }
+  if(!showHoney && !showBottling){
+    html += `<div class="p-section">No data entered yet.</div>`;
+  }
+  document.getElementById('printArea').innerHTML = html;
+}
+function prow(label, value){
+  return `<div class="p-row"><span class="k">${escapeHtml(label)}</span><span class="v">${escapeHtml(value===null||value===undefined||value===''?'—':value)}</span></div>`;
+}
+document.getElementById('pdfBtn').addEventListener('click', ()=>{
+  const batchNo = val('m_batch_no').trim();
+  if(!batchNo){ toast('Enter a Batch No first'); return; }
+  buildPrintView();
+  window.print();
+});
+
+/* ---------- Init ---------- */
+function init(){
+  seedFieldValuesFromRecords();
+  renderAllDropdowns();
+  const last = localStorage.getItem(LS_KEYS.lastOperator);
+  if(last){ setVal('h_operator', last); setVal('b_operator', last); }
+  updatePendingCount();
+  updateSectionStatuses();
+  renderLists();
+  loadOperatorsFromCloud();
+  loadInventoryProducts();
+  pullFromCloud().then(syncAll);
+  setInterval(()=>{ if(navigator.onLine) syncAll(); }, 30000);
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+}
+init();
+</script>
+</body>
+</html>
