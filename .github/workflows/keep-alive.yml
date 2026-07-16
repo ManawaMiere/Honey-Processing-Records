@@ -1,1 +1,41 @@
+name: Supabase keep-alive
 
+# Prevents both free-tier Supabase projects from being auto-paused after 7
+# days of inactivity. Runs every 3 days — well inside that window, so a
+# single missed/delayed run still leaves margin before either project
+# would actually be at risk.
+#
+# What it does: one small, real read against a table in each project (not
+# just a ping to a URL — Supabase's inactivity timer is based on actual
+# database queries, so hitting the REST API is what counts).
+#
+# One-time setup: add these two repo secrets under
+# Settings → Secrets and variables → Actions → New repository secret
+#   SHED_RECORDS_ANON_KEY   → the Manawa Processing + Bottling project's anon key
+#   INVENTORY_ANON_KEY      → the manawa-honey (Inventory) project's anon key
+# (Both are the same public anon keys already embedded in each app's
+# index.html — safe to store as secrets, this just keeps them out of the
+# workflow file itself.)
+
+on:
+  schedule:
+    - cron: '0 3 */3 * *'   # every 3 days at 03:00 UTC
+  workflow_dispatch: {}       # lets you trigger a run manually from the Actions tab to test it
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Shed Records project (hczvczvlmrihqwogcezr)
+        run: |
+          curl -sS -o /dev/null -w "Shed Records ping: HTTP %{http_code}\n" \
+            "https://hczvczvlmrihqwogcezr.supabase.co/rest/v1/operators?select=name&limit=1" \
+            -H "apikey: ${{ secrets.SHED_RECORDS_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SHED_RECORDS_ANON_KEY }}"
+
+      - name: Ping Inventory project (mbitzetcopjludhnjleb)
+        run: |
+          curl -sS -o /dev/null -w "Inventory ping: HTTP %{http_code}\n" \
+            "https://mbitzetcopjludhnjleb.supabase.co/rest/v1/products?select=id&limit=1" \
+            -H "apikey: ${{ secrets.INVENTORY_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.INVENTORY_ANON_KEY }}"
